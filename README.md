@@ -1,6 +1,8 @@
 # redscript-vscode
 VS Code extension for [redscript](https://github.com/jac3km4/redscript). It provides basic error hints for compiler errors in your source code.
 
+<img src="https://i.imgur.com/3mR6BjS.png"/>
+
 ## usage
 This extension requires two settings in user preferences:
 ```json
