@@ -2,6 +2,7 @@
   "name": "redscript-vscode",
   "displayName": "redscript-vscode",
   "description": "Redscript VSCode support",
+  "publisher": "jac3km4",
   "version": "0.0.1",
   "repository": "https://github.com/jac3km4/redscript-vscode",
   "engines": {
