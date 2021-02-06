@@ -31,9 +31,10 @@ const lintDocument = (document: vscode.TextDocument): Observable<LintMessage[]> 
   const compilerPath: string | undefined = config.get("compilerPath");
   const scriptCachePath: string | undefined = config.get("scriptCachePath");
   if (compilerPath && scriptCachePath) {
-    const sourcePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath || document.fileName;
+    let workspacePath = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath;
+    const sourcePath = workspacePath || document.fileName;
 
-    return runInWorkspace([compilerPath, "lint", "-s", sourcePath, "-b", scriptCachePath])
+    return runInWorkspace([compilerPath, "lint", "-s", sourcePath, "-b", scriptCachePath], workspacePath)
       .pipe(map((stdout) => {
         let errors = [];
         for (const match of stdout.matchAll(REGEX)) {
@@ -56,9 +57,9 @@ const lintDocument = (document: vscode.TextDocument): Observable<LintMessage[]> 
  * @return An observable with standard output of the command
  */
 const runInWorkspace =
-  (command: ReadonlyArray<string>, stdin?: string): Observable<string> =>
+  (command: ReadonlyArray<string>, projectDir?: string, stdin?: string): Observable<string> =>
     new Observable((observer: Observer<string>): void => {
-      const cwd = vscode.workspace.rootPath || process.cwd();
+      const cwd = projectDir || process.cwd();
       const child = execFile(command[0], command.slice(1), { cwd },
         (error, stdout) => {
           if (error) {
