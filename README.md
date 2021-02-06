@@ -6,10 +6,8 @@ VS Code extension for [redscript](https://github.com/jac3km4/redscript). It prov
 ## usage
 This extension requires two settings in user preferences:
 ```json
-"redscript": {
-    "compilerPath": "D:\\win\\bin\\redscript-cli.exe",
-    "scriptCachePath": "D:\\path\\to\\r6\\cache\\final.redscripts.bk"
-}
+"redscript.compilerPath": "D:\\win\\bin\\redscript-cli.exe",
+"redscript.scriptCachePath": "D:\\path\\to\\r6\\cache\\final.redscripts.bk"
 ```
 `compilerPath` should point to a compiler CLI executable.
 

@@ -26,7 +26,20 @@
           ".reds"
         ]
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Redscript",
+      "properties": {
+        "redscript.compilerPath": {
+          "type": "string",
+          "description": "Path to redscript-cli"
+        },
+        "redscript.scriptCachePath": {
+          "type": "string",
+          "description": "Path to final.redscripts to use when compiling"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
