@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 // hacky regex to extract error messages
 const REGEX =
-  /Compilation error at ([\S]:?[^:]+):([0-9]+):([0-9]+):\n([\s\S]+?)(?=(Compilation error at |$))/g;
+  /\[ERROR\] Failed at ([\S]:?[^:]+):([0-9]+):([0-9]+):\n([\s\S]+?)(?=(\[ERROR\]|$))/g;
 
 /**
  * Lint a document.
@@ -35,9 +35,9 @@ const lintDocument = (document: vscode.TextDocument): Observable<LintMessage[]> 
     const sourcePath = workspacePath || document.fileName;
 
     return runInWorkspace([compilerPath, "lint", "-s", sourcePath, "-b", scriptCachePath], workspacePath)
-      .pipe(map((stdout) => {
+      .pipe(map((stderr) => {
         let errors = [];
-        for (const match of stdout.matchAll(REGEX)) {
+        for (const match of stripColors(stderr).matchAll(REGEX)) {
           const [, file, line, column, message] = match;
           errors.push({ file, line: parseInt(line), column: parseInt(column), message });
         }
@@ -61,11 +61,11 @@ const runInWorkspace =
     new Observable((observer: Observer<string>): void => {
       const cwd = projectDir || process.cwd();
       const child = execFile(command[0], command.slice(1), { cwd },
-        (error, stdout) => {
+        (error, stdout, stderr) => {
           if (error) {
             observer.error(error);
           } else {
-            observer.next(stdout);
+            observer.next(stderr);
             observer.complete();
           }
         });
@@ -73,6 +73,10 @@ const runInWorkspace =
         child.stdin?.end(stdin);
       }
     });
+
+const stripColors = (str: string) => {
+  return str.replace(/\x1B[[(?);]{0,2}(;?\d)*./g, '')
+}
 
 
 /**
