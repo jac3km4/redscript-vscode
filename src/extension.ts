@@ -10,6 +10,7 @@ interface LintMessage {
   readonly line: number;
   readonly column: number;
   readonly message: string;
+  readonly level: "WARN" | "ERROR";
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -18,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 // hacky regex to extract error messages
 const REGEX =
-  /\[ERROR\] Failed at ([\S]:?[^:]+):([0-9]+):([0-9]+):\n([\s\S]+?)(?=(\[ERROR\]|$))/g;
+  /\[(ERROR|WARN|INFO)\] At ([\S]:?[^:]+):([0-9]+):([0-9]+):\n([\s\S]+?)(?=(\[(ERROR|WARN|INFO)\]|$))/g;
 
 /**
  * Lint a document.
@@ -36,12 +37,15 @@ const lintDocument = (document: vscode.TextDocument): Observable<LintMessage[]> 
 
     return runInWorkspace([compilerPath, "lint", "-s", sourcePath, "-b", scriptCachePath], workspacePath)
       .pipe(map((stderr) => {
-        let errors = [];
+        let messages = [];
         for (const match of stripColors(stderr).matchAll(REGEX)) {
-          const [, file, line, column, message] = match;
-          errors.push({ file, line: parseInt(line), column: parseInt(column), message });
+          const [, levelStr, file, line, column, message] = match;
+          const level: "WARN" | "ERROR" | undefined = levelStr == "WARN" || levelStr == "ERROR" ? levelStr : undefined;
+          if (level) {
+            messages.push({ file, line: parseInt(line), column: parseInt(column), message, level: level });
+          }
         }
-        return errors;
+        return messages;
       }));
   } else {
     vscode.window.showErrorMessage("Redscript configuration missing, consult the README");
@@ -65,7 +69,7 @@ const runInWorkspace =
           if (error) {
             observer.error(error);
           } else {
-            observer.next(stderr);
+            observer.next(stdout);
             observer.complete();
           }
         });
@@ -147,7 +151,7 @@ const toDiagnostic = (lintMessage: LintMessage): vscode.Diagnostic => {
     lintMessage.line - 1,
     lintMessage.column + 100);
   const message = lintMessage.message;
-  const severity = vscode.DiagnosticSeverity.Error;
+  const severity = lintMessage.level == "ERROR" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
   const diagnostic = new vscode.Diagnostic(range, message, severity);
   diagnostic.source = "redscript";
   return diagnostic;
