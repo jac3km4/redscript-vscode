@@ -1,116 +1,70 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
+// Extensions commands
+
 import { exec } from 'child_process';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { existsSync, copyFile, unlink, mkdirSync, writeFileSync } from 'fs';
 
+import { log, showError, showInfo, getScriptDeploymentFolder, GetActiveTextDocument } from "./common";
+
 export { 
-  DeployFileCommand, 
-  UndeployFileCommand,
-  CreateZipCommand,
-  NewModCommand
+  deployFileCommand, 
+  undeployFileCommand,
+  createZipCommand,
+  newModCommand
  };
 
-// helper functions
-let output = vscode.window.createOutputChannel("redscript");
-
-function ShowInfo(msg : string){
-  vscode.window.showInformationMessage(msg);
-  output.appendLine(msg);
-}
-
-function ShowError(msg : string){
-  vscode.window.showErrorMessage(msg);
-  output.appendLine("[ERROR] " + msg);
-}
-
-function GetScriptsFolder() {
-  const config = vscode.workspace.getConfiguration("redscript");
-  const gameBaseDir: string | undefined = config.get("gameDir");
-
-  if (gameBaseDir)  {
-      let scriptsDir = path.join(gameBaseDir, "r6", "scripts");
-      if (existsSync(scriptsDir)) {
-      return scriptsDir;
-      }
-  }
-
-  ShowError("Redscript game path missing, consult the README");
-  return "";
-}
-
-function GetActiveTextDocument() {
-  let d = vscode.window.activeTextEditor?.document;
-  if (d){
-
-    // some dumb error handling because output channels are part of the activeTextEditors
-    if (d.languageId == "Log")
-    {
-      ShowError("Run this command from a redscript file");
-      return;
-    }
-
-    let document = d.fileName;
-    if (existsSync(document)) {
-      return document;
-    }
-    else{
-      ShowError("No such file exists: " + document);
-    }
-  }
-}
-
-// commands
-
 // Copies the currently open file to the r6/scripts folder
-function DeployFileCommand() {
-  output.appendLine("Deploying file... ");
+function deployFileCommand() {
+  log("Deploying file... ");
 
-  let scriptsFolder = GetScriptsFolder();
-  if (!scriptsFolder){
-    ShowError("Scripts path missing, consult the README");
+  const scriptsFolder = getScriptDeploymentFolder();
+  if (scriptsFolder){
+    const document = GetActiveTextDocument();
+    if (document){
+      const destpath = path.join(scriptsFolder, path.basename(document));
+      copyFile(document, destpath, (err) => {
+        if (err) throw err;
+        showInfo("File succesfully deployed to: " + destpath);
+      });
+    }
+  }
+  else{
+    showError("Scripts path missing, consult the README");
   }
   
-  let document = GetActiveTextDocument();
-  if (document){
-    let destpath = path.join(scriptsFolder, path.basename(document));
-    copyFile(document, destpath, (err) => {
-      if (err) throw err;
-      ShowInfo("File succesfully deployed to: " + destpath);
-    });
-  }
 }
   
 // Deletes a file with the same name as the currently open file from the r6/scripts folder
-function UndeployFileCommand() {
-  output.appendLine("Undeploying file... ");
+function undeployFileCommand() {
+  log("Undeploying file... ");
 
-  let scriptsFolder = GetScriptsFolder();
-  if (!scriptsFolder){
-    ShowError("Scripts path missing, consult the README");
+  const scriptsFolder = getScriptDeploymentFolder();
+  if (scriptsFolder){
+    const document = GetActiveTextDocument();
+    if (document){
+      const destpath = path.join(scriptsFolder, path.basename(document));
+      if (destpath && existsSync(destpath)){
+        unlink(destpath, (err) => {
+          if (err) throw err;
+          showInfo("File succesfully deleted from: " + destpath);
+        });
+      }
+      else{
+        log("No file to delete");
+      }
+    }
   }
-  
-  let document = GetActiveTextDocument();
-  if (document){
-    let destpath = path.join(scriptsFolder, path.basename(document));
-    if (destpath && existsSync(destpath)){
-      unlink(destpath, (err) => {
-        if (err) throw err;
-        ShowInfo("File succesfully deleted from: " + destpath)
-      });
-    }
-    else{
-      output.appendLine("No file to delete");
-    }
+  else {
+    showError("Scripts path missing, consult the README");
   }
 }
 
 // Creates a zip archive from the currently open file root 
-function CreateZipCommand() {
-  output.appendLine("Creating mod zip file... ");
+function createZipCommand() {
+  log("Creating mod zip file... ");
 
-  let document = GetActiveTextDocument();
+  const document = GetActiveTextDocument();
   if (document) {
     // check if parents are r6/scripts
     let parentDir = path.dirname(document);
@@ -119,43 +73,43 @@ function CreateZipCommand() {
     {
       parentDir = path.dirname(parentDir);
       basename = path.basename(parentDir);
-      let r6dir = parentDir;
+      const r6dir = parentDir;
       if (basename == "r6")
       {
         parentDir = path.dirname(parentDir);
-        let modname = path.basename(parentDir);
-        let destPath = path.join(parentDir, modname + '.zip');
+        const modname = path.basename(parentDir);
+        const destPath = path.join(parentDir, modname + '.zip');
 
-        let args = 'Compress-Archive -Path ' + r6dir + ' -DestinationPath ' + destPath + ' -Update';
+        const args = 'Compress-Archive -Path ' + r6dir + ' -DestinationPath ' + destPath + ' -Update';
         exec(args, {'shell':'powershell.exe'}, (err, stdout, stderr) => {
           if (err) throw err;
-          output.appendLine(stdout);
-          output.appendLine(stderr);
+          log(stdout);
+          log(stderr);
 
-          ShowInfo("Zip file created at: " + destPath);
-        })
+          showInfo("Zip file created at: " + destPath);
+        });
         
       }
       else{
-        ShowError("redscript files need to be nested like so: modname/r6/scripts/file.reds");
+        showError("redscript files need to be nested like so: modname/r6/scripts/file.reds");
       }
     }
     else{
-      ShowError("redscript files need to be nested like so: modname/r6/scripts/file.reds");
+      showError("redscript files need to be nested like so: modname/r6/scripts/file.reds");
     }
   }
   else{
-    ShowError("No such file exists: " + document);
+    showError("No such file exists: " + document);
   }
 }
 
 // Creates a new mod Folder in the current workspace 
-function NewModCommand() {
-  output.appendLine("Creating new mod... ");
+function newModCommand() {
+  log("Creating new mod... ");
 
-  let folders = vscode.workspace.workspaceFolders;
+  const folders = vscode.workspace.workspaceFolders;
   if (folders) {
-    let first = folders[0].uri.fsPath;
+    const first = folders[0].uri.fsPath;
     if (first && existsSync(first)) {
       let newDir = path.join(first, "myMod", "r6", "scripts");
 
@@ -167,7 +121,7 @@ function NewModCommand() {
             break;
           }
           if (step > 9){
-            ShowError("Mod already exists");
+            showError("Mod already exists");
             return;
           }
         }  
@@ -176,12 +130,12 @@ function NewModCommand() {
       mkdirSync(newDir, { recursive: true });
 
       // create empty file
-      let newfile = path.join(newDir, "main.reds");
+      const newfile = path.join(newDir, "main.reds");
       writeFileSync(newfile, "");
-      ShowInfo("Mod created");
+      showInfo("Mod created");
     }
   }
   else{
-    ShowError("Create a workspace to use this command");
+    showError("Create a workspace to use this command");
   }
 }

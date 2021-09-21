@@ -4,7 +4,9 @@ import { execFile } from 'child_process';
 import { Observable, fromEventPattern, from, merge, EMPTY, Observer, } from 'rxjs';
 import { map, filter, groupBy, debounceTime, mergeAll, catchError, } from 'rxjs/operators';
 import * as vscode from 'vscode';
+
 import * as commands from "./commands";
+import { getScriptBlobPath } from "./common";
 
 interface LintMessage {
   readonly file: string;
@@ -15,10 +17,10 @@ interface LintMessage {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.deployFile', commands.DeployFileCommand));
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.undeployFile', commands.UndeployFileCommand));
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.createZip', commands.CreateZipCommand));
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.newMod', commands.NewModCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.deployFile', commands.deployFileCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.undeployFile', commands.undeployFileCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.createZip', commands.createZipCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.newMod', commands.newModCommand));
 
   startLinting(context);
 }
@@ -36,15 +38,15 @@ const REGEX =
 const lintDocument = (document: vscode.TextDocument): Observable<LintMessage[]> => {
   const config = vscode.workspace.getConfiguration("redscript");
   const compilerPath: string | undefined = config.get("compilerPath");
-  const scriptCachePath: string | undefined = config.get("scriptCachePath");
+  const scriptCachePath: string | undefined = getScriptBlobPath();
 
   if (compilerPath && scriptCachePath) {
-    let workspacePath = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath;
+    const workspacePath = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath;
     const sourcePath = workspacePath || document.fileName;
 
     return runInWorkspace([compilerPath, "lint", "-s", sourcePath, "-b", scriptCachePath], workspacePath)
       .pipe(map((stderr) => {
-        let messages = [];
+        const messages = [];
         for (const match of stripColors(stderr).matchAll(REGEX)) {
           const [, levelStr, file, line, column, message] = match;
           const level: "WARN" | "ERROR" | undefined = levelStr == "WARN" || levelStr == "ERROR" ? levelStr : undefined;
@@ -86,8 +88,9 @@ const runInWorkspace =
     });
 
 const stripColors = (str: string) => {
-  return str.replace(/\x1B[[(?);]{0,2}(;?\d)*./g, '')
-}
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B[[(?);]{0,2}(;?\d)*./g, '');
+};
 
 
 /**
@@ -129,7 +132,7 @@ const startLinting = (context: vscode.ExtensionContext): void => {
     .subscribe((messages) => {
       diagnostics.clear();
 
-      let byFile: { [file: string]: vscode.Diagnostic[] } = {};
+      const byFile: { [file: string]: vscode.Diagnostic[] } = {};
       for (const message of messages) {
         if (byFile[message.file]) {
           byFile[message.file].push(toDiagnostic(message));
@@ -147,7 +150,7 @@ const startLinting = (context: vscode.ExtensionContext): void => {
     .subscribe((document) => diagnostics.delete(document.uri));
 
   context.subscriptions.push({ dispose: cleanup.unsubscribe });
-}
+};
 
 const toDiagnostic = (lintMessage: LintMessage): vscode.Diagnostic => {
   // VSCode has zero-based positions, whereas hlint outputs 1-based line and
