@@ -4,30 +4,30 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { existsSync } from 'fs';
 
-export { 
+export {
   log,
-  showInfo, 
+  showInfo,
   showError,
   getActiveTextDocument as GetActiveTextDocument,
   getScriptBlobPath,
   getScriptDeploymentFolder
- };
+};
 
 const output = vscode.window.createOutputChannel("redscript");
 
 // logs to custom output channels
-function log(msg : string){
+function log(msg: string) {
   output.appendLine(msg);
 }
 
 // logs and displays an info message
-function showInfo(msg : string){
+function showInfo(msg: string) {
   vscode.window.showInformationMessage(msg);
   output.appendLine(msg);
 }
 
 // logs and displays an error message
-function showError(msg : string){
+function showError(msg: string) {
   vscode.window.showErrorMessage(msg);
   output.appendLine("[ERROR] " + msg);
 }
@@ -35,11 +35,10 @@ function showError(msg : string){
 // returns the active text document
 function getActiveTextDocument() {
   const d = vscode.window.activeTextEditor?.document;
-  if (d){
+  if (d) {
 
     // some dumb error handling because output channels are part of the activeTextEditors
-    if (d.languageId == "Log")
-    {
+    if (d.languageId == "Log") {
       showError("Run this command from a redscript file");
       return;
     }
@@ -48,7 +47,7 @@ function getActiveTextDocument() {
     if (existsSync(document)) {
       return document;
     }
-    else{
+    else {
       showError("No such file exists: " + document);
     }
   }
@@ -68,7 +67,7 @@ function getScriptDeploymentFolder() {
   const config = vscode.workspace.getConfiguration("redscript");
   const gameBaseDir: string | undefined = config.get("gameDir");
 
-  if (gameBaseDir)  {
+  if (gameBaseDir) {
     const scriptsDir = path.join(gameBaseDir, "r6", "scripts");
     if (existsSync(scriptsDir)) {
       return scriptsDir;
