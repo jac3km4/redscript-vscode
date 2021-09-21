@@ -16,7 +16,8 @@
     "onCommand:redscript.deployFile",
     "onCommand:redscript.undeployFile",
     "onCommand:redscript.newMod",
-    "onCommand:redscript.createZip"
+    "onCommand:redscript.createZip",
+    "onCommand:redscript.openScriptsDir"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -64,6 +65,10 @@
       {
         "command": "redscript.newMod",
         "title": "redscript: New redscript mod"
+      },
+      {
+        "command": "redscript.openScriptsDir",
+        "title": "redscript: Open game scripts folder"
       }
     ],
     "menus": {

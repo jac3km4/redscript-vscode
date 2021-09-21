@@ -11,7 +11,8 @@ export {
   deployFileCommand,
   undeployFileCommand,
   createZipCommand,
-  newModCommand
+  newModCommand,
+  openScriptsDirCommand
 };
 
 // Copies the currently open file to the r6/scripts folder
@@ -134,5 +135,17 @@ function newModCommand() {
   }
   else {
     showError("Create a workspace to use this command");
+  }
+}
+
+function openScriptsDirCommand() {
+  const scriptsFolder = getScriptDeploymentFolder();
+  if (scriptsFolder) {
+    const args = "ii " + "\"" + scriptsFolder  + "\"";
+    exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
+      if (err) throw err;
+      log(stdout);
+      log(stderr);
+    });
   }
 }
