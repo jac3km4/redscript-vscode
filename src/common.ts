@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 
 export {
   log,
@@ -69,8 +69,9 @@ function getScriptDeploymentFolder() {
 
   if (gameBaseDir) {
     const scriptsDir = path.join(gameBaseDir, "r6", "scripts");
-    if (existsSync(scriptsDir)) {
-      return scriptsDir;
+    if (!existsSync(scriptsDir)) {
+      mkdirSync(scriptsDir);
     }
+    return scriptsDir;
   }
 }
