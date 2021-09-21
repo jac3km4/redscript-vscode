@@ -4,7 +4,7 @@ import { execFile } from 'child_process';
 import { Observable, fromEventPattern, from, merge, EMPTY, Observer, } from 'rxjs';
 import { map, filter, groupBy, debounceTime, mergeAll, catchError, } from 'rxjs/operators';
 import * as vscode from 'vscode';
-import * as c from "./commands";
+import * as commands from "./commands";
 
 interface LintMessage {
   readonly file: string;
@@ -15,10 +15,10 @@ interface LintMessage {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.deployFile', DeployFileCommand));
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.undeployFile', UndeployFileCommand));
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.createZip', CreateZipCommand));
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.newMod', (name: string = 'world') => NewModCommand(name)));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.deployFile', commands.DeployFileCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.undeployFile', commands.UndeployFileCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.createZip', commands.CreateZipCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.newMod', commands.NewModCommand));
 
   startLinting(context);
 }

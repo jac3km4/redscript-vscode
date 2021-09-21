@@ -5,9 +5,16 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { existsSync, copyFile, unlink, mkdirSync, writeFileSync } from 'fs';
 
-let output = vscode.window.createOutputChannel("redscript");
+export { 
+  DeployFileCommand, 
+  UndeployFileCommand,
+  CreateZipCommand,
+  NewModCommand
+ };
 
 // helper functions
+let output = vscode.window.createOutputChannel("redscript");
+
 function GetScriptsFolder() {
   const config = vscode.workspace.getConfiguration("redscript");
   const gameBaseDir: string | undefined = config.get("gameDir");
@@ -118,7 +125,7 @@ function CreateZipCommand() {
 }
 
 // Creates a new mod Folder in the current workspace 
-function NewModCommand(name : String) {
+function NewModCommand() {
   output.show();
   output.appendLine("Creating new mod... ");
 
