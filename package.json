@@ -12,7 +12,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:swift"
+    "onLanguage:swift",
+    "onCommand:redscript.deployFile",
+    "onCommand:redscript.undeployFile"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -37,8 +39,34 @@
         "redscript.scriptCachePath": {
           "type": "string",
           "description": "Path to final.redscripts to use when compiling"
+        },
+        "redscript.gameDir": {
+          "type": "string",
+          "description": "Path to Cyberpunk 2077 base folder to use when deploying"
         }
       }
+    },
+    "commands": [
+      {
+        "command": "redscript.deployFile",
+        "title": "Deploy File"
+      },
+      {
+        "command": "redscript.undeployFile",
+        "title": "Undeploy File"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "redscript.deployFile",
+          "when": "editorLangId == swift"
+        },
+        {
+          "command": "redscript.undeployFile",
+          "when": "editorLangId == swift"
+        }
+      ]
     }
   },
   "scripts": {
@@ -48,7 +76,7 @@
     "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/node": "^12.12.0",
+    "@types/node": "^12.20.25",
     "@types/vscode": "^1.34.0",
     "@typescript-eslint/eslint-plugin": "^3.0.2",
     "@typescript-eslint/parser": "^3.0.2",

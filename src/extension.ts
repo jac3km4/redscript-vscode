@@ -4,6 +4,8 @@ import { execFile } from 'child_process';
 import { Observable, fromEventPattern, from, merge, EMPTY, Observer, } from 'rxjs';
 import { map, filter, groupBy, debounceTime, mergeAll, catchError, } from 'rxjs/operators';
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { existsSync, copyFile, unlink } from 'fs';
 
 interface LintMessage {
   readonly file: string;
@@ -14,8 +16,13 @@ interface LintMessage {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.deployFile', DeployFile));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.undeployFile', UndeployFile));
+
   startLinting(context);
 }
+
+let output = vscode.window.createOutputChannel("redscript");
 
 // hacky regex to extract error messages
 const REGEX =
@@ -31,6 +38,7 @@ const lintDocument = (document: vscode.TextDocument): Observable<LintMessage[]> 
   const config = vscode.workspace.getConfiguration("redscript");
   const compilerPath: string | undefined = config.get("compilerPath");
   const scriptCachePath: string | undefined = config.get("scriptCachePath");
+
   if (compilerPath && scriptCachePath) {
     let workspacePath = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath;
     const sourcePath = workspacePath || document.fileName;
@@ -156,3 +164,63 @@ const toDiagnostic = (lintMessage: LintMessage): vscode.Diagnostic => {
   diagnostic.source = "redscript";
   return diagnostic;
 };
+
+
+// helper functions
+function GetScriptsFolder() {
+  const config = vscode.workspace.getConfiguration("redscript");
+  const gameBaseDir: string | undefined = config.get("gameDir");
+
+  if (gameBaseDir)  {
+    let scriptsDir = path.join(gameBaseDir, "r6", "scripts");
+    if (existsSync(scriptsDir)) {
+      return scriptsDir;
+    }
+  }
+
+  vscode.window.showErrorMessage("Redscript game path missing, consult the README");
+  return "";
+}
+
+
+// commands
+function DeployFile() {
+  let scriptsFolder = GetScriptsFolder();
+  if (!scriptsFolder){
+    output.show();
+    output.appendLine("Scripts path missing, consult the README");
+  }
+  
+  let document = vscode.window.activeTextEditor?.document.fileName;
+  if (document) {
+    let destpath = path.join(scriptsFolder, path.basename(document));
+    copyFile(document, destpath, (err) => {
+      if (err) 
+          throw err;
+          output.show();
+          output.appendLine("File succesfully deployed to " + destpath);
+    });
+  }
+}
+
+function UndeployFile() {
+  let scriptsFolder = GetScriptsFolder();
+  if (!scriptsFolder){
+    output.show();
+    output.appendLine("Scripts path missing, consult the README");
+  }
+  
+  let document = vscode.window.activeTextEditor?.document.fileName;
+  if (document) {
+    let destpath = path.join(scriptsFolder, path.basename(document));
+    if (destpath){
+      unlink(destpath, (err) => {
+        if (err) 
+            throw err;
+            output.show();
+            output.appendLine("File succesfully deleted from " + destpath);
+      });
+    }
+  }
+}
+
