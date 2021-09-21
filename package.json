@@ -14,7 +14,9 @@
   "activationEvents": [
     "onLanguage:swift",
     "onCommand:redscript.deployFile",
-    "onCommand:redscript.undeployFile"
+    "onCommand:redscript.undeployFile",
+    "onCommand:redscript.newMod",
+    "onCommand:redscript.createZip"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -54,6 +56,14 @@
       {
         "command": "redscript.undeployFile",
         "title": "Undeploy File"
+      },
+      {
+        "command": "redscript.createZip",
+        "title": "Create mod zip archive"
+      },
+      {
+        "command": "redscript.newMod",
+        "title": "Create new redscript mod"
       }
     ],
     "menus": {
@@ -64,6 +74,10 @@
         },
         {
           "command": "redscript.undeployFile",
+          "when": "editorLangId == swift"
+        },
+        {
+          "command": "redscript.createZip",
           "when": "editorLangId == swift"
         }
       ]
