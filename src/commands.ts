@@ -132,16 +132,16 @@ function CreateZipCommand() {
           output.appendLine(stdout);
           output.appendLine(stderr);
 
-          ShowInfo("Zip file succesfully created at: " + destPath);
+          ShowInfo("Zip file created at: " + destPath);
         })
         
       }
       else{
-        ShowError("redscript files need to be under nested like so: modname/r6/scripts/file.reds");
+        ShowError("redscript files need to be nested like so: modname/r6/scripts/file.reds");
       }
     }
     else{
-      ShowError("redscript files need to be under nested like so: modname/r6/scripts/file.reds");
+      ShowError("redscript files need to be nested like so: modname/r6/scripts/file.reds");
     }
   }
   else{
@@ -157,24 +157,31 @@ function NewModCommand() {
   if (folders) {
     let first = folders[0].uri.fsPath;
     if (first && existsSync(first)) {
-      let newDir = path.join(first, "myMod/r6/scripts");
+      let newDir = path.join(first, "myMod", "r6", "scripts");
+
       if (existsSync(newDir))
       {
-        
+        for (let step = 0; step < 10; step++) {
+          newDir = path.join(first, "myMod_"+ step.toString(), "r6", "scripts");
+          if (!existsSync(newDir)){
+            break;
+          }
+          if (step > 9){
+            ShowError("Mod already exists");
+            return;
+          }
+        }  
       }
-      else
-      {
-        let result = mkdirSync(newDir, { recursive: true });
-        // create file
-        //if (result)
-        {
-          let newfile = path.join(newDir, "main.reds");
-          writeFileSync(newfile, "");
-        }
-      }
-      
+
+      mkdirSync(newDir, { recursive: true });
+
+      // create empty file
+      let newfile = path.join(newDir, "main.reds");
+      writeFileSync(newfile, "");
+      ShowInfo("Mod created");
     }
   }
-
-  ShowInfo("Mod created");
+  else{
+    ShowError("Create a workspace to use this command");
+  }
 }

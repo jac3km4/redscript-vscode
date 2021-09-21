@@ -51,19 +51,19 @@
     "commands": [
       {
         "command": "redscript.deployFile",
-        "title": "Deploy File"
+        "title": "redscript: Deploy File"
       },
       {
         "command": "redscript.undeployFile",
-        "title": "Undeploy File"
+        "title": "redscript: Undeploy File"
       },
       {
         "command": "redscript.createZip",
-        "title": "Create mod zip archive"
+        "title": "redscript: Zip current mod"
       },
       {
         "command": "redscript.newMod",
-        "title": "Create new redscript mod"
+        "title": "redscript: New redscript mod"
       }
     ],
     "menus": {
