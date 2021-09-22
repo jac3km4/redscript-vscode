@@ -42,7 +42,7 @@
         },
         "redscript.scriptCachePath": {
           "type": "string",
-          "description": "Path to final.redscripts to use when compiling"
+          "description": "Path to final.redscripts to use when compiling (Optional)"
         },
         "redscript.gameDir": {
           "type": "string",

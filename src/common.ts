@@ -59,7 +59,7 @@ function getScriptBlobPath() {
   const config = vscode.workspace.getConfiguration("redscript");
   const scriptCachePath: string | undefined = config.get("scriptCachePath");
   const gameBaseDir: string | undefined = config.get("gameDir");
-  if (gameBaseDir){
+  if (gameBaseDir) {
     const inferredCachePath = scriptCachePath || path.join(gameBaseDir, "r6", "cache", "final.redscripts.bk");
     return inferredCachePath;
   }
