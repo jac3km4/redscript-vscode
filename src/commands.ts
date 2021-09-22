@@ -38,7 +38,7 @@ function escape(str: string) {
 //   }
 // }
 
-// get's the first folder called "src" in your first workspace folder (not recursively)
+// gets the first folder called "src" in your first workspace folder (not recursively)
 // the idea is to open a modproject, which has a "src" folder inside with File > Open folder ...
 function getSrcFolderSync() {
   const folders = vscode.workspace.workspaceFolders;
