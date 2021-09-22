@@ -142,8 +142,8 @@ function createZipCommand() {
 
   const src = getCurrentModFolder();
   if (src) {
-    const modname = path.basename(src);
     const parentDir = path.dirname(src);
+    const modname = path.basename(parentDir);
     const destPath = path.join(parentDir, modname + '.zip');
 
     const output = createWriteStream(destPath);
