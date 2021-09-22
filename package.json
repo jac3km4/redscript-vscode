@@ -53,11 +53,11 @@
     "commands": [
       {
         "command": "redscript.deployFile",
-        "title": "redscript: Deploy File"
+        "title": "redscript: Deploy Mod"
       },
       {
         "command": "redscript.undeployFile",
-        "title": "redscript: Undeploy File"
+        "title": "redscript: Undeploy Mod"
       },
       {
         "command": "redscript.createZip",

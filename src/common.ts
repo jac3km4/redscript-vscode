@@ -59,8 +59,10 @@ function getScriptBlobPath() {
   const config = vscode.workspace.getConfiguration("redscript");
   const scriptCachePath: string | undefined = config.get("scriptCachePath");
   const gameBaseDir: string | undefined = config.get("gameDir");
-  const inferredCachePath = scriptCachePath || `${gameBaseDir}/r6/cache/final.redscripts.bak`;
-  return inferredCachePath;
+  if (gameBaseDir){
+    const inferredCachePath = scriptCachePath || path.join(gameBaseDir, "r6", "cache", "final.redscripts.bk");
+    return inferredCachePath;
+  }
 }
 
 // returns the r6/scripts folder from the base game directory
