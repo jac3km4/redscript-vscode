@@ -3,7 +3,7 @@
 import { exec } from 'child_process';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { existsSync, mkdirSync, writeFileSync, createWriteStream } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, createWriteStream, readdir, statSync, readdirSync } from 'fs';
 import { log, showError, showInfo, getScriptDeploymentFolder, GetActiveTextDocument, getGameExePath } from "./common";
 import * as archiver from 'archiver';
 
@@ -11,32 +11,49 @@ export {
   deployFileCommand,
   undeployFileCommand,
   createZipCommand,
-  newModCommand,
+  //newModCommand,
   openScriptsDirCommand,
   launchGameCommand
 };
 
-
-// go up from the current file to /src folder and return its path
-function getCurrentModFolder() {
-  const wsfolders = vscode.workspace.workspaceFolders?.map(x => x.uri.fsPath);
-  const document = GetActiveTextDocument();
-
-  if (document && wsfolders) {
-    let currentDir = path.dirname(document);
-    // go up until wsfolder
-    while (!wsfolders.includes(currentDir)) {
-      if (path.basename(currentDir) == "src") {
-        return currentDir;
-      }
-      currentDir = path.dirname(currentDir);
-    }
-  }
-}
-
 // esapes a string in quotes
 function escape(str: string) {
   return "\"" + str + "\"";
+}
+
+// go up from the current file to /src folder and return its path
+// function getCurrentModFolder() {
+//   const wsfolders = vscode.workspace.workspaceFolders?.map(x => x.uri.fsPath);
+//   const document = GetActiveTextDocument();
+
+//   if (document && wsfolders) {
+//     let currentDir = path.dirname(document);
+//     // go up until wsfolder
+//     while (!wsfolders.includes(currentDir)) {
+//       if (path.basename(currentDir) == "src") {
+//         return currentDir;
+//       }
+//       currentDir = path.dirname(currentDir);
+//     }
+//   }
+// }
+
+// get's the first folder called "src" in your first workspace folder (not recursively)
+// the idea is to open a modproject, which has a "src" folder inside with File > Open folder ...
+function getSrcFolderSync() {
+  const folders = vscode.workspace.workspaceFolders;
+  if (folders) {
+    // this expects one folder in the workspace (open folder)
+    // and it has 
+    const rootdir = folders[0].uri.fsPath;
+    const d = readdirSync(rootdir, { 'withFileTypes': true });
+    const dirs = d.filter(file => file.isDirectory());
+
+    const src = dirs.find(x => x.name == "src");
+    if (src) {
+      return path.join(rootdir, src.name);
+    }
+  }
 }
 
 // Copies the currently open file to the r6/scripts folder
@@ -44,7 +61,7 @@ function deployFileCommand() {
   log("Deploying file(s) ... ");
 
   const scriptsFolder = getScriptDeploymentFolder();
-  const src = getCurrentModFolder();
+  const src = getSrcFolderSync();
 
   if (scriptsFolder) {
     if (src) {
@@ -83,7 +100,7 @@ function undeployFileCommand() {
   log("Undeploying file(s) ... ");
 
   const scriptsFolder = getScriptDeploymentFolder();
-  const src = getCurrentModFolder();
+  const src = getSrcFolderSync();
 
   if (scriptsFolder) {
     if (src) {
@@ -140,7 +157,7 @@ function undeployFileCommand() {
 function createZipCommand() {
   log("Creating mod zip file ... ");
 
-  const src = getCurrentModFolder();
+  const src = getSrcFolderSync();
   if (src) {
     const parentDir = path.dirname(src);
     const modname = path.basename(parentDir);
@@ -177,40 +194,40 @@ function createZipCommand() {
 }
 
 // Creates a new mod Folder in the current workspace 
-function newModCommand() {
-  log("Creating new mod ... ");
+// function newModCommand() {
+//   log("Creating new mod ... ");
 
-  const folders = vscode.workspace.workspaceFolders;
-  if (folders) {
-    const first = folders[0].uri.fsPath;
-    if (first && existsSync(first)) {
-      let newDir = path.join(first, "myMod", "src");
+//   const folders = vscode.workspace.workspaceFolders;
+//   if (folders) {
+//     const first = folders[0].uri.fsPath;
+//     if (first && existsSync(first)) {
+//       let newDir = path.join(first, "myMod", "src");
 
-      if (existsSync(newDir)) {
-        for (let step = 0; step < 10; step++) {
-          newDir = path.join(first, "myMod_" + step.toString(), "src");
-          if (!existsSync(newDir)) {
-            break;
-          }
-          if (step > 9) {
-            showError("Mod already exists");
-            return;
-          }
-        }
-      }
+//       if (existsSync(newDir)) {
+//         for (let step = 0; step < 10; step++) {
+//           newDir = path.join(first, "myMod_" + step.toString(), "src");
+//           if (!existsSync(newDir)) {
+//             break;
+//           }
+//           if (step > 9) {
+//             showError("Mod already exists");
+//             return;
+//           }
+//         }
+//       }
 
-      mkdirSync(newDir, { recursive: true });
+//       mkdirSync(newDir, { recursive: true });
 
-      // create empty file
-      const newfile = path.join(newDir, "main.reds");
-      writeFileSync(newfile, "");
-      showInfo("Mod created");
-    }
-  }
-  else {
-    showError("Create a workspace to use this command");
-  }
-}
+//       // create empty file
+//       const newfile = path.join(newDir, "main.reds");
+//       writeFileSync(newfile, "");
+//       showInfo("Mod created");
+//     }
+//   }
+//   else {
+//     showError("Create a workspace to use this command");
+//   }
+// }
 
 // opens r6/scripts in Explorer
 function openScriptsDirCommand() {
