@@ -10,7 +10,8 @@ export {
   showError,
   getActiveTextDocument as GetActiveTextDocument,
   getScriptBlobPath,
-  getScriptDeploymentFolder
+  getScriptDeploymentFolder,
+  getGameExePath
 };
 
 const output = vscode.window.createOutputChannel("redscript");
@@ -73,5 +74,18 @@ function getScriptDeploymentFolder() {
       mkdirSync(scriptsDir);
     }
     return scriptsDir;
+  }
+}
+
+// get game executable Path
+function getGameExePath() {
+  const config = vscode.workspace.getConfiguration("redscript");
+  const gameBaseDir: string | undefined = config.get("gameDir");
+
+  if (gameBaseDir) {
+    const gameExePath = path.join(gameBaseDir, "bin", "x64", "Cyberpunk2077.exe");
+    if (existsSync(gameExePath)) {
+      return gameExePath;
+    }
   }
 }

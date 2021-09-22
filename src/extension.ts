@@ -22,6 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('redscript.createZip', commands.createZipCommand));
   context.subscriptions.push(vscode.commands.registerCommand('redscript.newMod', commands.newModCommand));
   context.subscriptions.push(vscode.commands.registerCommand('redscript.openScriptsDir', commands.openScriptsDirCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.launchGame', commands.launchGameCommand));
 
   startLinting(context);
 }
