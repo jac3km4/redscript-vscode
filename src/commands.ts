@@ -28,14 +28,14 @@ function getSrcFolderSync(doc: vscode.TextDocument | undefined) {
     return;
   }
   const uri = doc.uri;
-  const wsfolder = vscode.workspace.getWorkspaceFolder(uri);
-  if (wsfolder) {
-    const rootdir = wsfolder.uri.fsPath;
-    const src = readdirSync(rootdir, { 'withFileTypes': true })
+  const wsDir = vscode.workspace.getWorkspaceFolder(uri);
+  if (wsDir) {
+    const rootDir = wsDir.uri.fsPath;
+    const src = readdirSync(rootDir, { 'withFileTypes': true })
       .filter(file => file.isDirectory())
       .find(x => x.name == "src");
     if (src) {
-      return path.join(rootdir, src.name);
+      return path.join(rootDir, src.name);
     }
   }
 }
@@ -45,31 +45,31 @@ function deployFileCommand() {
   log("Deploying file(s) ... ");
 
   const document = vscode.window.activeTextEditor?.document;
-  const scriptsFolder = getScriptDeploymentFolder();
-  const src = getSrcFolderSync(document);
+  const deployDir = getScriptDeploymentFolder();
+  const srcDir = getSrcFolderSync(document);
 
-  if (scriptsFolder) {
-    if (src) {
+  if (deployDir) {
+    if (srcDir) {
       // copy everything in /src to r6/scripts 
-      const args = "Copy-Item " + escape(src + path.sep + "*") + " -Destination " + escape(scriptsFolder) + " -Recurse -Force -Verbose";
+      const args = "Copy-Item " + escape(srcDir + path.sep + "*") + " -Destination " + escape(deployDir) + " -Recurse -Force -Verbose";
       exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
         if (err) throw err;
         log(stdout);
         log(stderr);
 
-        showInfo("Source file(s) deployed to: " + scriptsFolder);
+        showInfo("Source file(s) deployed to: " + deployDir);
       });
     }
     else {
       // deploy single file
       if (document) {
-        const args = "Copy-Item " + escape(document.fileName) + " -Destination " + escape(scriptsFolder) + " -Force -Verbose";
+        const args = "Copy-Item " + escape(document.fileName) + " -Destination " + escape(deployDir) + " -Force -Verbose";
         exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
           if (err) throw err;
           log(stdout);
           log(stderr);
 
-          showInfo("File deployed to: " + scriptsFolder);
+          showInfo("File deployed to: " + deployDir);
         });
       }
     }
@@ -84,26 +84,26 @@ function undeployFileCommand() {
   log("Undeploying file(s) ... ");
 
   const document = vscode.window.activeTextEditor?.document;
-  const scriptsFolder = getScriptDeploymentFolder();
-  const src = getSrcFolderSync(document);
+  const deployDir = getScriptDeploymentFolder();
+  const srcDir = getSrcFolderSync(document);
 
-  if (scriptsFolder) {
-    if (src) {
+  if (deployDir) {
+    if (srcDir) {
       // list all files in src
-      const cwd = src || process.cwd();
+      const cwd = srcDir || process.cwd();
       exec("dir -n -s -af", { 'shell': 'powershell.exe', 'cwd': cwd }, (err, stdout, stderr) => {
         if (err) throw err;
         log(stdout);
         log(stderr);
-        const srcfiles = stdout
+        const srcFiles = stdout
           .split("\r\n")
           .filter(x => { if (x) return x; });
-        const fileList = srcfiles
-          .map(x => escape(path.join(scriptsFolder, x)))
+        const fileList = srcFiles
+          .map(x => escape(path.join(deployDir, x)))
           .join(',');
 
         // delete all files from r6/scripts
-        const cwd = scriptsFolder || process.cwd();
+        const cwd = deployDir || process.cwd();
         const args = "Remove-Item " + fileList + " -Force -Verbose";
         log(args);
         exec(args, { 'shell': 'powershell.exe', 'cwd': cwd }, (err, stdout, stderr) => {
@@ -111,14 +111,14 @@ function undeployFileCommand() {
           log(stdout);
           log(stderr);
 
-          showInfo("Source file(s) deleted from: " + scriptsFolder);
+          showInfo("Source file(s) deleted from: " + deployDir);
         });
       });
     }
     else {
       // undeploy single file
       if (document) {
-        const destpath = path.join(scriptsFolder, path.basename(document.fileName));
+        const destpath = path.join(deployDir, path.basename(document.fileName));
         if (destpath && existsSync(destpath)) {
           const args = "Remove-Item " + escape(destpath) + " -Force -Verbose";
           exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
@@ -126,7 +126,7 @@ function undeployFileCommand() {
             log(stdout);
             log(stderr);
 
-            showInfo("File deleted from: " + scriptsFolder);
+            showInfo("File deleted from: " + deployDir);
           });
         }
       }
@@ -142,10 +142,10 @@ function createZipCommand() {
   log("Creating mod zip file ... ");
 
   const document = vscode.window.activeTextEditor?.document;
-  const src = getSrcFolderSync(document);
+  const srcDir = getSrcFolderSync(document);
 
-  if (src) {
-    const parentDir = path.dirname(src);
+  if (srcDir) {
+    const parentDir = path.dirname(srcDir);
     const modname = path.basename(parentDir);
     const destPath = path.join(parentDir, modname + '.zip');
 
@@ -169,8 +169,8 @@ function createZipCommand() {
     });
 
     archive.pipe(output);
-    const sourcedir = src + path.sep;
-    archive.directory(sourcedir, 'r6/scripts');
+    const srcDirWithSep = srcDir + path.sep;
+    archive.directory(srcDirWithSep, 'r6/scripts');
     archive.finalize();
     showInfo("Zip file created at: " + destPath);
   }
@@ -217,9 +217,9 @@ function newModCommand() {
 
 // opens r6/scripts in Explorer
 function openScriptsDirCommand() {
-  const scriptsFolder = getScriptDeploymentFolder();
-  if (scriptsFolder) {
-    const args = "ii " + escape(scriptsFolder);
+  const deployDir = getScriptDeploymentFolder();
+  if (deployDir) {
+    const args = "ii " + escape(deployDir);
     exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
       if (err) throw err;
       log(stdout);
