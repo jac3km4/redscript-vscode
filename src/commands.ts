@@ -23,13 +23,13 @@ function escape(str: string) {
 
 // goes up to the active workspace folder containing the currently open file
 // then down to the folder called "src"
-function getSrcFolderSync(doc : vscode.TextDocument | undefined) {
+function getSrcFolderSync(doc: vscode.TextDocument | undefined) {
   if (!doc) {
     return;
   }
   const uri = doc.uri;
   const wsfolder = vscode.workspace.getWorkspaceFolder(uri);
-  if (wsfolder){
+  if (wsfolder) {
     const rootdir = wsfolder.uri.fsPath;
     const src = readdirSync(rootdir, { 'withFileTypes': true })
       .filter(file => file.isDirectory())
