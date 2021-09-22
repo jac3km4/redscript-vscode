@@ -45,5 +45,6 @@ ModName
 - **Open game scripts folder**: Opens the `r6/scripts` folder in Explorer
 - **Launch Game**: launches the game
 - **Zip current mod**: creates a zip of the `src` folder parent of the current open file and creates the correct `r6/scripts` structure inside the zip file 
+- **New redscript mod**: creates a new folder in the current workspace called `myMod` and creates a new empty redscript file at `myMod/src/main.reds` 
 
 ![settings](./_assets/commands.jpg)
