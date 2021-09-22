@@ -3,15 +3,15 @@
 import { exec } from 'child_process';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { existsSync, mkdirSync, writeFileSync, createWriteStream, readdir, statSync, readdirSync } from 'fs';
-import { log, showError, showInfo, getScriptDeploymentFolder, GetActiveTextDocument, getGameExePath } from "./common";
+import { existsSync, createWriteStream, readdirSync, mkdirSync, writeFileSync } from 'fs';
+import { log, showError, showInfo, getScriptDeploymentFolder, getGameExePath } from "./common";
 import * as archiver from 'archiver';
 
 export {
   deployFileCommand,
   undeployFileCommand,
   createZipCommand,
-  //newModCommand,
+  newModCommand,
   openScriptsDirCommand,
   launchGameCommand
 };
@@ -21,35 +21,19 @@ function escape(str: string) {
   return "\"" + str + "\"";
 }
 
-// go up from the current file to /src folder and return its path
-// function getCurrentModFolder() {
-//   const wsfolders = vscode.workspace.workspaceFolders?.map(x => x.uri.fsPath);
-//   const document = GetActiveTextDocument();
-
-//   if (document && wsfolders) {
-//     let currentDir = path.dirname(document);
-//     // go up until wsfolder
-//     while (!wsfolders.includes(currentDir)) {
-//       if (path.basename(currentDir) == "src") {
-//         return currentDir;
-//       }
-//       currentDir = path.dirname(currentDir);
-//     }
-//   }
-// }
-
-// gets the first folder called "src" in your first workspace folder (not recursively)
-// the idea is to open a modproject, which has a "src" folder inside with File > Open folder ...
-function getSrcFolderSync() {
-  const folders = vscode.workspace.workspaceFolders;
-  if (folders) {
-    // this expects one folder in the workspace (open folder)
-    // and it has 
-    const rootdir = folders[0].uri.fsPath;
-    const d = readdirSync(rootdir, { 'withFileTypes': true });
-    const dirs = d.filter(file => file.isDirectory());
-
-    const src = dirs.find(x => x.name == "src");
+// goes up to the active workspace folder containing the currently open file
+// then down to the folder called "src"
+function getSrcFolderSync(doc : vscode.TextDocument | undefined) {
+  if (!doc) {
+    return;
+  }
+  const uri = doc.uri;
+  const wsfolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (wsfolder){
+    const rootdir = wsfolder.uri.fsPath;
+    const src = readdirSync(rootdir, { 'withFileTypes': true })
+      .filter(file => file.isDirectory())
+      .find(x => x.name == "src");
     if (src) {
       return path.join(rootdir, src.name);
     }
@@ -60,8 +44,9 @@ function getSrcFolderSync() {
 function deployFileCommand() {
   log("Deploying file(s) ... ");
 
+  const document = vscode.window.activeTextEditor?.document;
   const scriptsFolder = getScriptDeploymentFolder();
-  const src = getSrcFolderSync();
+  const src = getSrcFolderSync(document);
 
   if (scriptsFolder) {
     if (src) {
@@ -77,9 +62,8 @@ function deployFileCommand() {
     }
     else {
       // deploy single file
-      const document = GetActiveTextDocument();
       if (document) {
-        const args = "Copy-Item " + escape(document) + " -Destination " + escape(scriptsFolder) + " -Force -Verbose";
+        const args = "Copy-Item " + escape(document.fileName) + " -Destination " + escape(scriptsFolder) + " -Force -Verbose";
         exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
           if (err) throw err;
           log(stdout);
@@ -99,8 +83,9 @@ function deployFileCommand() {
 function undeployFileCommand() {
   log("Undeploying file(s) ... ");
 
+  const document = vscode.window.activeTextEditor?.document;
   const scriptsFolder = getScriptDeploymentFolder();
-  const src = getSrcFolderSync();
+  const src = getSrcFolderSync(document);
 
   if (scriptsFolder) {
     if (src) {
@@ -132,9 +117,8 @@ function undeployFileCommand() {
     }
     else {
       // undeploy single file
-      const document = GetActiveTextDocument();
       if (document) {
-        const destpath = path.join(scriptsFolder, path.basename(document));
+        const destpath = path.join(scriptsFolder, path.basename(document.fileName));
         if (destpath && existsSync(destpath)) {
           const args = "Remove-Item " + escape(destpath) + " -Force -Verbose";
           exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
@@ -157,7 +141,9 @@ function undeployFileCommand() {
 function createZipCommand() {
   log("Creating mod zip file ... ");
 
-  const src = getSrcFolderSync();
+  const document = vscode.window.activeTextEditor?.document;
+  const src = getSrcFolderSync(document);
+
   if (src) {
     const parentDir = path.dirname(src);
     const modname = path.basename(parentDir);
@@ -193,41 +179,41 @@ function createZipCommand() {
   }
 }
 
-// Creates a new mod Folder in the current workspace 
-// function newModCommand() {
-//   log("Creating new mod ... ");
+//Creates a new mod Folder in the current workspace 
+function newModCommand() {
+  log("Creating new mod ... ");
 
-//   const folders = vscode.workspace.workspaceFolders;
-//   if (folders) {
-//     const first = folders[0].uri.fsPath;
-//     if (first && existsSync(first)) {
-//       let newDir = path.join(first, "myMod", "src");
+  const folders = vscode.workspace.workspaceFolders;
+  if (folders) {
+    const first = folders[0].uri.fsPath;
+    if (first && existsSync(first)) {
+      let newDir = path.join(first, "myMod", "src");
 
-//       if (existsSync(newDir)) {
-//         for (let step = 0; step < 10; step++) {
-//           newDir = path.join(first, "myMod_" + step.toString(), "src");
-//           if (!existsSync(newDir)) {
-//             break;
-//           }
-//           if (step > 9) {
-//             showError("Mod already exists");
-//             return;
-//           }
-//         }
-//       }
+      if (existsSync(newDir)) {
+        for (let step = 0; step < 10; step++) {
+          newDir = path.join(first, "myMod_" + step.toString(), "src");
+          if (!existsSync(newDir)) {
+            break;
+          }
+          if (step > 9) {
+            showError("Mod already exists");
+            return;
+          }
+        }
+      }
 
-//       mkdirSync(newDir, { recursive: true });
+      mkdirSync(newDir, { recursive: true });
 
-//       // create empty file
-//       const newfile = path.join(newDir, "main.reds");
-//       writeFileSync(newfile, "");
-//       showInfo("Mod created");
-//     }
-//   }
-//   else {
-//     showError("Create a workspace to use this command");
-//   }
-// }
+      // create empty file
+      const newfile = path.join(newDir, "main.reds");
+      writeFileSync(newfile, "");
+      showInfo("Mod created");
+    }
+  }
+  else {
+    showError("Create a workspace to use this command");
+  }
+}
 
 // opens r6/scripts in Explorer
 function openScriptsDirCommand() {

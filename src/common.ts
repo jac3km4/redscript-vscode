@@ -8,7 +8,6 @@ export {
   log,
   showInfo,
   showError,
-  getActiveTextDocument as GetActiveTextDocument,
   getScriptBlobPath,
   getScriptDeploymentFolder,
   getGameExePath
@@ -31,27 +30,6 @@ function showInfo(msg: string) {
 function showError(msg: string) {
   vscode.window.showErrorMessage(msg);
   output.appendLine("[ERROR] " + msg);
-}
-
-// returns the active text document
-function getActiveTextDocument() {
-  const d = vscode.window.activeTextEditor?.document;
-  if (d) {
-
-    // some dumb error handling because output channels are part of the activeTextEditors
-    if (d.languageId == "Log") {
-      showError("Run this command from a redscript file");
-      return;
-    }
-
-    const document = d.fileName;
-    if (existsSync(document)) {
-      return document;
-    }
-    else {
-      showError("No such file exists: " + document);
-    }
-  }
 }
 
 // returns the script cache path from either the user config or the default path from the base game directory

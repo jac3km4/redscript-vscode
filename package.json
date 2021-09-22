@@ -15,6 +15,7 @@
     "onLanguage:swift",
     "onCommand:redscript.deployFile",
     "onCommand:redscript.undeployFile",
+    "onCommand:redscript.newMod",
     "onCommand:redscript.createZip",
     "onCommand:redscript.openScriptsDir",
     "onCommand:redscript.launchGame"
@@ -63,6 +64,10 @@
         "title": "redscript: Zip current mod"
       },
       {
+        "command": "redscript.newMod",
+        "title": "redscript: New redscript mod"
+      },
+      {
         "command": "redscript.openScriptsDir",
         "title": "redscript: Open game scripts folder"
       },
@@ -79,6 +84,10 @@
         },
         {
           "command": "redscript.undeployFile",
+          "when": "editorLangId == swift"
+        },
+        {
+          "command": "redscript.createZip",
           "when": "editorLangId == swift"
         }
       ]
