@@ -14,7 +14,8 @@ export {
   createZipCommand,
   newModCommand,
   openScriptsDirCommand,
-  launchGameCommand
+  launchGameCommand,
+  deployAndLaunchGameCommand
 };
 
 // goes up to the active workspace folder containing the currently open file
@@ -208,4 +209,10 @@ function launchGameCommand() {
       log(stderr);
     });
   }
+}
+
+
+function deployAndLaunchGameCommand() {
+  deployProjectCommand();
+  launchGameCommand();
 }

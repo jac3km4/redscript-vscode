@@ -18,7 +18,8 @@
     "onCommand:redscript.newMod",
     "onCommand:redscript.createZip",
     "onCommand:redscript.openScriptsDir",
-    "onCommand:redscript.launchGame"
+    "onCommand:redscript.launchGame",
+    "onCommand:redscript.deployAndLaunchGame"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -74,6 +75,10 @@
       {
         "command": "redscript.launchGame",
         "title": "redscript: Launch Game"
+      },
+      {
+        "command": "redscript.deployAndLaunchGame",
+        "title": "redscript: Deploy & Launch Game"
       }
     ],
     "menus": {
