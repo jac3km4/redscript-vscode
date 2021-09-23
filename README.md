@@ -38,13 +38,13 @@ ModName (workspace folder)
 ### command list
 
 - **Deploy Mod**
-  - in a workspace: copies all files from the `src` folder to `$gameDir/r6/scripts/$workspaceName`
+  - in a workspace: copies all files from the `src` folder to `$gameDir/r6/scripts/$workspaceFolderName`
   - in individual file: copies your file to `$gameDir/r6/scripts/$fileName`
 - **Undeploy Mod**
-  - in a workspace: deletes the deployed mod from `$gameDir/r6/scripts/$workspaceName`
+  - in a workspace: deletes the deployed mod from `$gameDir/r6/scripts/$workspaceFolderName`
   - in individual file: deletes the file at `$gameDir/r6/scripts/$fileName`
 - **Zip current mod** (in a format compatible with Nexus)
-  - in a workspace: creates a zip archive by adding files from the `src` directory under `r6/scripts/$workspaceName` in the archive
+  - in a workspace: creates a zip archive by adding files from the `src` directory under `r6/scripts/$workspaceFolderName` in the archive
   - in individual file: creates a zip archive with your file added under `r6/scripts`
 - **Open game scripts folder**
   - opens the `$gameDir/r6/scripts` folder in Explorer
