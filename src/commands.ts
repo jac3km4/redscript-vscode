@@ -1,139 +1,103 @@
 // Extensions commands
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { existsSync, createWriteStream, readdirSync, mkdirSync, writeFileSync } from 'fs';
-import { log, showError, showInfo, getScriptDeploymentFolder, getGameExePath } from "./common";
+import * as fs from 'fs';
+import { log, showError, showInfo, getScriptDeploymentFolder, getGameExePath, showWarning } from "./common";
 import * as archiver from 'archiver';
+import * as shell from "shelljs";
 
 export {
-  deployFileCommand,
-  undeployFileCommand,
+  deployProjectCommand,
+  undeployProjectCommand,
   createZipCommand,
   newModCommand,
   openScriptsDirCommand,
   launchGameCommand
 };
 
-// esapes a string in quotes
-function escape(str: string) {
-  return "\"" + str + "\"";
-}
-
 // goes up to the active workspace folder containing the currently open file
 // then down to the folder called "src"
-function getSrcFolderSync(doc: vscode.TextDocument | undefined) {
-  if (!doc) {
-    return;
+function getSrcFolderSync(doc: vscode.TextDocument) {
+  const wsDir = vscode.workspace.getWorkspaceFolder(doc.uri);
+  const srcDir = wsDir && path.join(wsDir.uri.fsPath, "src");
+  const doesDirExist = srcDir && fs.existsSync(srcDir);
+  if (wsDir && !doesDirExist) {
+    showWarning("This file is in part of a workspace without a 'src' directory - some commands may not work properly! Check the README for more information.");
   }
-  const uri = doc.uri;
-  const wsDir = vscode.workspace.getWorkspaceFolder(uri);
-  if (wsDir) {
-    const rootDir = wsDir.uri.fsPath;
-    const src = readdirSync(rootDir, { 'withFileTypes': true })
-      .filter(file => file.isDirectory())
-      .find(x => x.name == "src");
-    if (src) {
-      return path.join(rootDir, src.name);
-    }
-  }
+
+  return doesDirExist ? srcDir : undefined;
 }
 
-// Copies the currently open file to the r6/scripts folder
-function deployFileCommand() {
+// Copies the current project to the r6/scripts folder
+function deployProjectCommand() {
   log("Deploying file(s) ... ");
 
   const document = vscode.window.activeTextEditor?.document;
   const deployDir = getScriptDeploymentFolder();
-  const srcDir = getSrcFolderSync(document);
 
-  if (deployDir) {
-    if (srcDir) {
-      // copy everything in /src to r6/scripts 
-      const args = "Copy-Item " + escape(srcDir + path.sep + "*") + " -Destination " + escape(deployDir) + " -Recurse -Force -Verbose";
-      exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
-        if (err) throw err;
-        log(stdout);
-        log(stderr);
-
-        showInfo("Source file(s) deployed to: " + deployDir);
-      });
-    }
-    else {
-      // deploy single file
-      if (document) {
-        const args = "Copy-Item " + escape(document.fileName) + " -Destination " + escape(deployDir) + " -Force -Verbose";
-        exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
-          if (err) throw err;
-          log(stdout);
-          log(stderr);
-
-          showInfo("File deployed to: " + deployDir);
-        });
-      }
-    }
+  if (!document) {
+    showError("No active document, nothing to deploy");
+    return;
   }
-  else {
-    showError("r6/scripts folder missing, consult the README");
+  if (!deployDir) {
+    showError("Deployment directory not configured, consult the README");
+    return;
+  }
+
+  const srcDir = getSrcFolderSync(document);
+  const sources = srcDir ? path.join(srcDir, "*") : document.fileName;
+  const output = shell.cp("-r", sources, deployDir);
+
+  log(output.stdout);
+  if (output.code == 0) {
+    showInfo(`Source file(s) deployed to ${deployDir}`);
+  } else {
+    log(output.stderr);
+    showError(`Copy failed with code ${output.code}`);
   }
 }
 
 // Deletes a file with the same name as the currently open file from the r6/scripts folder
-function undeployFileCommand() {
+function undeployProjectCommand() {
   log("Undeploying file(s) ... ");
 
   const document = vscode.window.activeTextEditor?.document;
   const deployDir = getScriptDeploymentFolder();
-  const srcDir = getSrcFolderSync(document);
 
-  if (deployDir) {
-    if (srcDir) {
-      // list all files in src
-      const cwd = srcDir || process.cwd();
-      exec("dir -n -s -af", { 'shell': 'powershell.exe', 'cwd': cwd }, (err, stdout, stderr) => {
-        if (err) throw err;
-        log(stdout);
-        log(stderr);
-        const srcFiles = stdout
-          .split("\r\n")
-          .filter(x => { if (x) return x; });
-        const fileList = srcFiles
-          .map(x => escape(path.join(deployDir, x)))
-          .join(',');
-
-        // delete all files from r6/scripts
-        const cwd = deployDir || process.cwd();
-        const args = "Remove-Item " + fileList + " -Force -Verbose";
-        log(args);
-        exec(args, { 'shell': 'powershell.exe', 'cwd': cwd }, (err, stdout, stderr) => {
-          if (err) throw err;
-          log(stdout);
-          log(stderr);
-
-          showInfo("Source file(s) deleted from: " + deployDir);
-        });
-      });
-    }
-    else {
-      // undeploy single file
-      if (document) {
-        const destpath = path.join(deployDir, path.basename(document.fileName));
-        if (destpath && existsSync(destpath)) {
-          const args = "Remove-Item " + escape(destpath) + " -Force -Verbose";
-          exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
-            if (err) throw err;
-            log(stdout);
-            log(stderr);
-
-            showInfo("File deleted from: " + deployDir);
-          });
-        }
-      }
-    }
+  if (!document) {
+    showError("No active document, nothing to undeploy");
+    return;
   }
-  else {
-    showError("r6/scripts folder missing, consult the README");
+  if (!deployDir) {
+    showError("Deployment directory not configured, consult the README");
+    return;
+  }
+
+  const srcDir = getSrcFolderSync(document);
+  const fileList: string[] =
+    srcDir
+      ? shell.find(srcDir).map(absPath => path.relative(srcDir, absPath))
+      : [path.basename(document.fileName)];
+  const deployedFileList =
+    fileList
+      .map(relPath => path.join(deployDir, relPath))
+      .filter(file => fs.existsSync(file) && fs.lstatSync(file).isFile());
+
+  if (deployedFileList.length == 0) {
+    showInfo("Nothing to undeploy");
+    return;
+  }
+
+  const output = shell.rm(deployedFileList);
+
+  log(output.stdout);
+  if (output.code == 0) {
+    showInfo("Source file(s) deleted from: " + deployDir);
+  } else {
+    log(output.stderr);
+    showError(`Undeploy failed with code ${output.code}`);
   }
 }
 
@@ -142,76 +106,68 @@ function createZipCommand() {
   log("Creating mod zip file ... ");
 
   const document = vscode.window.activeTextEditor?.document;
+  if (!document) {
+    showError("No active document, nothing to zip");
+    return;
+  }
+
   const srcDir = getSrcFolderSync(document);
 
-  if (srcDir) {
-    const parentDir = path.dirname(srcDir);
-    const modname = path.basename(parentDir);
-    const destPath = path.join(parentDir, modname + '.zip');
+  const archiveName = srcDir ? path.basename(path.dirname(srcDir)) : path.basename(document.fileName);
+  const destDir = srcDir ? path.dirname(srcDir) : path.dirname(document.fileName);
+  const destFile = path.join(destDir, `${archiveName}.zip`)
 
-    const output = createWriteStream(destPath);
-    const archive = archiver('zip', {
-      zlib: { level: 9 }
-    });
-    output.on('close', function () {
-      log(archive.pointer() + ' total bytes');
-      log('archiver has been finalized and the output file descriptor has closed.');
-    });
-    archive.on('warning', function (err) {
-      if (err.code === 'ENOENT') {
-        showError(err.message);
-      } else {
-        throw err;
-      }
-    });
-    archive.on('error', function (err) {
+  const output = fs.createWriteStream(destFile);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  output.on('close', () => {
+    log(archive.pointer() + ' total bytes');
+    log('archiver has been finalized and the output file descriptor has closed.');
+  });
+  archive.on('warning', (err) => {
+    if (err.code === 'ENOENT') {
+      showError(err.message);
+    } else {
       throw err;
-    });
+    }
+  });
+  archive.on('error', (err) => { throw err; });
 
-    archive.pipe(output);
-    const srcDirWithSep = srcDir + path.sep;
-    archive.directory(srcDirWithSep, 'r6/scripts');
-    archive.finalize();
-    showInfo("Zip file created at: " + destPath);
+  archive.pipe(output);
+  if (srcDir) {
+    archive.directory(srcDir, 'r6/scripts');
+  } else {
+    archive.file(document.fileName, { name: `r6/scripts/${path.basename(document.fileName)}` });
   }
-  else {
-    showError("No source files to zip");
-  }
+  archive.finalize();
+  showInfo("Zip file created at: " + destFile);
 }
 
 //Creates a new mod Folder in the current workspace 
-function newModCommand() {
+async function newModCommand() {
   log("Creating new mod ... ");
 
-  const folders = vscode.workspace.workspaceFolders;
-  if (folders) {
-    const first = folders[0].uri.fsPath;
-    if (first && existsSync(first)) {
-      let newDir = path.join(first, "myMod", "src");
-
-      if (existsSync(newDir)) {
-        for (let step = 0; step < 10; step++) {
-          newDir = path.join(first, "myMod_" + step.toString(), "src");
-          if (!existsSync(newDir)) {
-            break;
-          }
-          if (step > 9) {
-            showError("Mod already exists");
-            return;
-          }
-        }
-      }
-
-      mkdirSync(newDir, { recursive: true });
-
-      // create empty file
-      const newfile = path.join(newDir, "main.reds");
-      writeFileSync(newfile, "");
-      showInfo("Mod created");
-    }
+  let modName = await vscode.window.showInputBox({ prompt: "Name of the mod" });
+  if (!modName || modName.length == 0) {
+    showError("Invalid name");
+    return;
   }
-  else {
+
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders) {
     showError("Create a workspace to use this command");
+    return;
+  }
+
+  const first = folders[0].uri.fsPath;
+  if (first && fs.existsSync(first)) {
+    let newDir = path.join(first, modName, "src");
+    fs.mkdirSync(newDir, { recursive: true });
+
+    // create empty file
+    const newfile = path.join(newDir, "main.reds");
+    fs.writeFileSync(newfile, "");
+    showInfo("Mod created");
   }
 }
 
@@ -219,8 +175,7 @@ function newModCommand() {
 function openScriptsDirCommand() {
   const deployDir = getScriptDeploymentFolder();
   if (deployDir) {
-    const args = "ii " + escape(deployDir);
-    exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
+    execFile("explorer", [deployDir], (err, stdout, stderr) => {
       if (err) throw err;
       log(stdout);
       log(stderr);
@@ -232,12 +187,12 @@ function openScriptsDirCommand() {
 function launchGameCommand() {
   const exePath = getGameExePath();
   if (exePath) {
-    const args = "Start-Process -FilePath " + escape(exePath);
-    exec(args, { 'shell': 'powershell.exe' }, (err, stdout, stderr) => {
+    showInfo("Starting the game ...");
+
+    execFile(exePath, (err, stdout, stderr) => {
+      if (err) throw err;
       log(stdout);
       log(stderr);
-
-      showInfo("Starting the game ...");
     });
   }
 }

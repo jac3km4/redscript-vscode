@@ -2,12 +2,14 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import * as fs from 'fs';
 
 export {
   log,
   showInfo,
+  showWarning,
   showError,
+  getCompilerPath,
   getScriptBlobPath,
   getScriptDeploymentFolder,
   getGameExePath
@@ -26,10 +28,21 @@ function showInfo(msg: string) {
   output.appendLine(msg);
 }
 
+// logs and displays an info message
+function showWarning(msg: string) {
+  vscode.window.showWarningMessage(msg);
+  output.appendLine(`[WARN] ${msg}`);
+}
+
 // logs and displays an error message
 function showError(msg: string) {
   vscode.window.showErrorMessage(msg);
-  output.appendLine("[ERROR] " + msg);
+  output.appendLine(`[ERROR] ${msg}`);
+}
+
+function getCompilerPath(): string | undefined {
+  const config = vscode.workspace.getConfiguration("redscript");
+  return config.get("compilerPath");
 }
 
 // returns the script cache path from either the user config or the default path from the base game directory
@@ -37,9 +50,11 @@ function getScriptBlobPath() {
   const config = vscode.workspace.getConfiguration("redscript");
   const scriptCachePath: string | undefined = config.get("scriptCachePath");
   const gameBaseDir: string | undefined = config.get("gameDir");
-  if (gameBaseDir) {
-    const inferredCachePath = scriptCachePath || path.join(gameBaseDir, "r6", "cache", "final.redscripts.bk");
-    return inferredCachePath;
+
+  if (scriptCachePath) {
+    return scriptCachePath;
+  } else if (gameBaseDir) {
+    return path.join(gameBaseDir, "r6", "cache", "final.redscripts.bk");
   }
 }
 
@@ -50,8 +65,8 @@ function getScriptDeploymentFolder() {
 
   if (gameBaseDir) {
     const scriptsDir = path.join(gameBaseDir, "r6", "scripts");
-    if (!existsSync(scriptsDir)) {
-      mkdirSync(scriptsDir);
+    if (!fs.existsSync(scriptsDir)) {
+      fs.mkdirSync(scriptsDir);
     }
     return scriptsDir;
   }
@@ -64,7 +79,7 @@ function getGameExePath() {
 
   if (gameBaseDir) {
     const gameExePath = path.join(gameBaseDir, "bin", "x64", "Cyberpunk2077.exe");
-    if (existsSync(gameExePath)) {
+    if (fs.existsSync(gameExePath)) {
       return gameExePath;
     }
   }

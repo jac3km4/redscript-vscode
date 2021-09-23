@@ -6,7 +6,7 @@ import { map, filter, groupBy, debounceTime, mergeAll, catchError, } from 'rxjs/
 import * as vscode from 'vscode';
 
 import * as commands from "./commands";
-import { getScriptBlobPath } from "./common";
+import { getCompilerPath, getScriptBlobPath, showError } from "./common";
 
 interface LintMessage {
   readonly file: string;
@@ -17,8 +17,8 @@ interface LintMessage {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.deployFile', commands.deployFileCommand));
-  context.subscriptions.push(vscode.commands.registerCommand('redscript.undeployFile', commands.undeployFileCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.deployProject', commands.deployProjectCommand));
+  context.subscriptions.push(vscode.commands.registerCommand('redscript.undeployProject', commands.undeployProjectCommand));
   context.subscriptions.push(vscode.commands.registerCommand('redscript.createZip', commands.createZipCommand));
   context.subscriptions.push(vscode.commands.registerCommand('redscript.newMod', commands.newModCommand));
   context.subscriptions.push(vscode.commands.registerCommand('redscript.openScriptsDir', commands.openScriptsDirCommand));
@@ -38,30 +38,28 @@ const REGEX =
  * @return An observable with the result of linting
  */
 const lintDocument = (document: vscode.TextDocument): Observable<LintMessage[]> => {
-  const config = vscode.workspace.getConfiguration("redscript");
-  const compilerPath: string | undefined = config.get("compilerPath");
-  const scriptCachePath: string | undefined = getScriptBlobPath();
-
-  if (compilerPath && scriptCachePath) {
-    const workspacePath = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath;
-    const sourcePath = workspacePath || document.fileName;
-
-    return runInWorkspace([compilerPath, "lint", "-s", sourcePath, "-b", scriptCachePath], workspacePath)
-      .pipe(map((stderr) => {
-        const messages = [];
-        for (const match of stripColors(stderr).matchAll(REGEX)) {
-          const [, levelStr, file, line, column, message] = match;
-          const level: "WARN" | "ERROR" | undefined = levelStr == "WARN" || levelStr == "ERROR" ? levelStr : undefined;
-          if (level) {
-            messages.push({ file, line: parseInt(line), column: parseInt(column), message, level: level });
-          }
-        }
-        return messages;
-      }));
-  } else {
-    vscode.window.showErrorMessage("Redscript configuration missing, consult the README");
+  const compilerPath: string | undefined = getCompilerPath();
+  const scriptBlobPath: string | undefined = getScriptBlobPath();
+  if (!compilerPath || !scriptBlobPath) {
+    showError("Redscript configuration missing, consult the README");
     return EMPTY;
   }
+
+  const workspacePath = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath;
+  const sourcePath = workspacePath || document.fileName;
+
+  return runInWorkspace([compilerPath, "lint", "-s", sourcePath, "-b", scriptBlobPath], workspacePath)
+    .pipe(map((stderr) => {
+      const messages = [];
+      for (const match of stripColors(stderr).matchAll(REGEX)) {
+        const [, levelStr, file, line, column, message] = match;
+        const level: "WARN" | "ERROR" | undefined = levelStr == "WARN" || levelStr == "ERROR" ? levelStr : undefined;
+        if (level) {
+          messages.push({ file, line: parseInt(line), column: parseInt(column), message, level: level });
+        }
+      }
+      return messages;
+    }));
 };
 
 /**
