@@ -21,7 +21,7 @@ You also need to configure VS Code to use `Swift` language mode when dealing wit
 ## commands
 This extension comes with commands that make development easier. Commands start with `redscript:` and can be exectuded from the [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) (default: `Ctrl+Shift+P`). 
 
-It is recommended to work inside a [workspace](https://code.visualstudio.com/docs/editor/workspaces) for projects consistent of more than one file to fully make use of the extension.
+It is recommended to work inside a [workspace](https://code.visualstudio.com/docs/editor/workspaces) for projects consisting of more than one file to fully make use of the extension.
 
 When in a workspace, this extension expects to find redscript files with in a `src` folder:
 ```
