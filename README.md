@@ -1,4 +1,6 @@
 # redscript-vscode
+### this extension is deprecated, use [redscript-ide](https://github.com/jac3km4/redscript-ide-vscode) instead
+---
 VS Code extension for [redscript](https://github.com/jac3km4/redscript). It provides basic error hints for compiler errors in your source code.
 
 <img src="https://i.imgur.com/3mR6BjS.png"/>
